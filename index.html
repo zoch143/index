@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Hipster Clone</title>
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.min.js"></script>
+</head>
+<body>
+<h1>Mini Hipster Clone</h1>
+<button id="login">Login to Spotify</button>
+<button id="scan" disabled>Scan QR</button>
+<video id="camera" style="width:1px;height:1px;opacity:0;"></video>
+
+<script>
+let token = '';
+const videoElem = document.getElementById('camera');
+const scanBtn = document.getElementById('scan');
+
+const clientId = '99eea2a2301146cfbc6c1148bd8b7a05'; // Replace with your Spotify app Client ID
+const redirectUri = 'https://zoch143.github.io/eoeo/'; // Your GitHub Pages URL
+const scopes = 'streaming user-read-playback-state user-modify-playback-state';
+
+document.getElementById('login').addEventListener('click', () => {
+    const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location = authUrl;
+});
+
+// Check URL hash for token after login
+if (window.location.hash) {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    token = hash.get('access_token');
+    if (token) {
+        scanBtn.disabled = false;
+        alert('Logged in! Now you can scan a QR code.');
+    }
+}
+
+// QR scanner
+scanBtn.addEventListener('click', () => {
+    const qrScanner = new QrScanner(videoElem, result => {
+        qrScanner.stop();
+        playSong(result);
+    });
+    qrScanner.start();
+});
+
+// Play Spotify track via Web Playback SDK
+function playSong(spotifyUri) {
+    const player = new Spotify.Player({
+        name: 'Mini Hipster Clone Player',
+        getOAuthToken: cb => { cb(token); }
+    });
+
+    player.connect().then(success => {
+        if (success) {
+            fetch(`https://api.spotify.com/v1/me/player/play`, {
+                method: 'PUT',
+                body: JSON.stringify({ uris: [spotifyUri] }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+        }
+    });
+}
+</script>
+</body>
+</html>
